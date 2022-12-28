@@ -39,7 +39,9 @@ struct CleanupFolder: ParsableCommand {
     /// Debug message handler. Enabled with the `--debug` cli argument.
     ///
     func message(_ message: String) {
-        print(message)
+        if self.debug {
+            print(message)
+        }
     }
     
     ///
