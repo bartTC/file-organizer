@@ -6,9 +6,6 @@
 import ArgumentParser
 import Foundation
 import Glob
-import OSLog
-
-let log = Logger()
 
 let fm = FileManager.default
 var ObjCTrue: ObjCBool = true
@@ -23,37 +20,18 @@ extension String {
     }
 }
 
-enum RootFolderValidationError: Error {
-    case doesNotExist
-    case permissionDenied
 }
 
 @main
 struct CleanupFolder: ParsableCommand {
-    static let configuration = CommandConfiguration(abstract: """
-    \n
-    Collect files from the [--root-folder] and move them into a subfolder with the
-    format YYYY-MM. Only files that are older than [--days-to-stay] will be collected.
-    
-    Example:
-        
-        ~/Downloads/b.txt
-        ~/Downloads/2022-12/a.txt
-    
-    Becomes:
-        
-        ~/Downloads/2022-12/a.txt
-        ~/Downloads/2022-12/b.txt
-
-    You may run this tool once or multiple times a day.
-    """)
+    static let configuration = CommandConfiguration(abstract: "Collect files from the --root-folder and move them into a subfolder with the format YYYY-MM. Only files that are older than --days-to-stay will be collected.")
     
     @Option(name: .shortAndLong, help: "The root folder.")
-    var rootFolder: String = "~/Downloads"
+    var rootFolder: String
     
     @Option(name: .shortAndLong, help: "How many days to leave files in the root folder before moving.")
-    var daysToStay: Int = 1
-        
+    var daysToStay: Int
+    
     @Flag(name: .long, help: "Show whats going on.")
     var debug: Bool = false
 
@@ -115,19 +93,18 @@ struct CleanupFolder: ParsableCommand {
             
             // Only move files which have been created earlier than <daysToStay> ago
             let fileURL = URL(filePath: file)
-            let fileName = fileURL.pathComponents.last!
             var fileDate = Date()
             
             // Try to fetch the creation date from the file, otherwise fallback to 'now' above.
             fileDate = try fileURL.resourceValues(forKeys: [.addedToDirectoryDateKey]).addedToDirectoryDate!
            
             if fileDate > dateLimit {
-                self.message("File is not old enough to move: \(fileName) Created at: \(fileDate.formatted())")
+                self.message("File is not old enough to move: \(fileURL.path()) Created at: \(fileDate.formatted())")
                 continue
             }
             
             // Any file object left is going to be moved to a target folder
-            self.message("Possible file to move: \(fileName) Created at: \(fileDate.formatted())")
+            self.message("Possible file to move: \(fileURL.path()) Created at: \(fileDate.formatted())")
             filesToMove.append(fileURL)
         }
         
@@ -157,7 +134,7 @@ struct CleanupFolder: ParsableCommand {
                 self.message("Target folder \(targetFolder.path()) already exists.")
             }
         } catch {
-            throw CleanExit.message("Unable to create target folder. Reason: \(error)")
+            throw ValidationError("Unable to create target folder. Reason: \(error)")
         }
         
         var filesMoved = 0
@@ -166,21 +143,21 @@ struct CleanupFolder: ParsableCommand {
             let fileName = file.pathComponents.last!
             let targetFile = targetFolder.appendingPathComponent(fileName)
             
-            self.message("About to move file\n  from: \(file.path())\n  to: \(targetFile.path())")
+            self.message("About to move file from: \(file.path())\n↳ to: \(targetFile.path())")
             
             // If a file with the same name already exists, remove it first.
             if fm.fileExists(atPath: targetFile.path()) {
-                self.message("  File in target folder already exists.")
+                self.message("↳ File in target folder already exists.")
                 do {
                     try fm.removeItem(atPath: targetFile.path())
                 } catch {
-                    self.message("Error removing file from target folder: \(error)")
+                    self.message("↳ Error removing file from target folder: \(error)")
                 }
             }
             
             try fm.moveItem(at: file, to: targetFile)
             filesMoved += 1
-            self.message("  OK")
+            self.message("↳ OK")
         }
         
         return filesMoved
