@@ -32,9 +32,9 @@ struct CleanupFolder: ParsableCommand {
     
     @Flag(name: .long, help: "Show whats going on.")
     var debug: Bool = false
+}
 
-    // MARK: - 🫣
-    
+extension CleanupFolder {
     ///
     /// Debug message handler. Enabled with the `--debug` cli argument.
     ///
@@ -118,12 +118,11 @@ struct CleanupFolder: ParsableCommand {
     /// - Parameter targetFolder: The parent folder where the sub-folder is created.
     ///
     func moveFiles(filesToMove files: [URL], targetFolder: URL) throws -> Int {
-
         // Format of the target folder is ./YYYY-MM
         let df = DateFormatter()
         df.dateFormat = targetFolderDateFormat
 
-        let targetFolder = targetFolder.appending(path:df.string(for: Date())!)
+        let targetFolder = targetFolder.appending(path: df.string(for: Date())!)
         
         self.message("Target Folder: \(targetFolder)")
         
@@ -162,9 +161,7 @@ struct CleanupFolder: ParsableCommand {
         
         return filesMoved
     }
-    
-    // MARK: - Run
-    
+        
     mutating func run() throws {
         let folder: URL = try self.prepareRootFolder(path: self.rootFolder)
         let filesToMove: [URL] = try self.collectFiles(fromFolder: folder)
