@@ -20,8 +20,6 @@ extension String {
     }
 }
 
-}
-
 @main
 struct CleanupFolder: ParsableCommand {
     static let configuration = CommandConfiguration(abstract: "Collect files from the --root-folder and move them into a subfolder with the format YYYY-MM. Only files that are older than --days-to-stay will be collected.")
